@@ -1,14 +1,12 @@
 import React from 'react';
 import { ViroNode, ViroBox, ViroMaterials } from '@reactvision/react-viro';
 import { CATALOG, getCatalogItem } from '../catalog/catalog';
-import { SceneItem } from '../store/useSceneStore';
+import { SceneItem, useSceneStore, Vec3 } from '../store/useSceneStore';
 
 /**
  * Sahneye yerleştirilmiş tek bir parça (Faz 2: primitif ViroBox).
+ * Faz 3: dokunarak seçme + parmakla sürükleyerek taşıma.
  * Faz 6'da ViroBox yerine item.modelRef ile Viro3DObject (.glb) gelecek.
- *
- * Her katalog parçası için bir materyal (galvaniz sac tonu) modül yüklenirken
- * bir kez oluşturulur.
  */
 CATALOG.forEach((c) => {
   ViroMaterials.createMaterials({
@@ -19,7 +17,7 @@ CATALOG.forEach((c) => {
     },
     [`mat_${c.key}_sel`]: {
       lightingModel: 'Blinn',
-      diffuseColor: c.color,
+      diffuseColor: '#ffd54a', // seçili: sarı vurgu
       shininess: 3.0,
     },
   });
@@ -31,6 +29,9 @@ type Props = {
 };
 
 export default function PlaceableItem({ item, selected }: Props) {
+  const select = useSceneStore((s) => s.select);
+  const updateItem = useSceneStore((s) => s.updateItem);
+
   const cat = getCatalogItem(item.type);
   const size = cat?.size ?? [0.2, 0.2, 0.2];
 
@@ -39,14 +40,18 @@ export default function PlaceableItem({ item, selected }: Props) {
       position={item.position}
       rotation={item.rotationEuler}
       scale={item.scale}
+      dragType="FixedDistance"
+      onDrag={(pos: number[]) =>
+        updateItem(item.id, { position: pos as Vec3 })
+      }
     >
+      {/* Gerçek ölçekte kutu — seçim yalnızca renkle vurgulanır (boyut değişmez) */}
       <ViroBox
         width={size[0]}
         height={size[1]}
         length={size[2]}
         materials={[selected ? `mat_${item.type}_sel` : `mat_${item.type}`]}
-        // Seçili parçada hafif büyütme ile vurgulama (Faz 3'te gizmo eklenecek)
-        scale={selected ? [1.04, 1.04, 1.04] : [1, 1, 1]}
+        onClick={() => select(item.id)}
       />
     </ViroNode>
   );

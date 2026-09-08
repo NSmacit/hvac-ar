@@ -4,6 +4,7 @@ import { ViroARSceneNavigator } from '@reactvision/react-viro';
 import ARWorld from '../ar/ARWorld';
 import ScanOverlay from '../components/ScanOverlay';
 import MaterialPalette from '../components/MaterialPalette';
+import TransformControls from '../components/TransformControls';
 import { useSceneStore } from '../store/useSceneStore';
 
 /**
@@ -50,6 +51,8 @@ export default function ARSceneScreen() {
         onToggle={toggleScanning}
         onClear={clear}
       />
+
+      <TransformControls />
     </View>
   );
 }
