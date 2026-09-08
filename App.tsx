@@ -1,18 +1,20 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import ARSceneScreen from './src/screens/ARSceneScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import RootNavigator from './src/navigation/RootNavigator';
 
 /**
- * Faz 0 giriş noktası: doğrudan AR sahnesini açar.
- * Faz 5'te burası React Navigation ile Home / Projeler / AR / Viewer
- * ekranlarını içeren bir navigator'a dönüşecek.
+ * Giriş noktası: Projeler listesiyle açılır; oradan AR'da oluştur veya
+ * kayıtlı projeyi 3D olarak incele.
  */
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <ARSceneScreen />
+      <NavigationContainer>
+        <StatusBar style="light" />
+        <RootNavigator />
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }

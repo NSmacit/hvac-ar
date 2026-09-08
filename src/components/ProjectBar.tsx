@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,24 +8,20 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useSceneStore } from '../store/useSceneStore';
-import {
-  buildProject,
-} from '../data/projectSchema';
-import {
-  saveProject,
-  listProjects,
-  loadProject,
-} from '../data/projectRepository';
+import { buildProject } from '../data/projectSchema';
+import { saveProject } from '../data/projectRepository';
 import { scale as s } from '../theme/responsive';
 
 /**
- * Proje kaydet / son projeyi aç çubuğu (Faz 4).
- * Faz 5'te "Aç" tam bir proje listesi ekranına dönüşecek.
+ * AR ekranındaki proje çubuğu (Faz 5):
+ * - 💾 Kaydet (ad sorar, cihazda JSON'a yazar)
+ * - ‹ Projeler (listeye geri döner)
  */
 export default function ProjectBar() {
   const insets = useSafeAreaInsets();
-  const [busy, setBusy] = useState(false);
+  const navigation = useNavigation<any>();
 
   const doSave = (name: string) => {
     const st = useSceneStore.getState();
@@ -57,47 +53,24 @@ export default function ProjectBar() {
     }
   };
 
-  const onOpenLast = async () => {
-    setBusy(true);
-    try {
-      const list = await listProjects();
-      if (list.length === 0) {
-        Alert.alert('Kayıt yok', 'Henüz kaydedilmiş proje yok.');
-        return;
-      }
-      const p = await loadProject(list[0].projectId);
-      if (!p) {
-        Alert.alert('Açılamadı', 'Proje dosyası okunamadı.');
-        return;
-      }
-      useSceneStore.getState().loadScene({
-        projectId: p.projectId,
-        name: p.name,
-        createdAt: p.createdAt,
-        items: p.items,
-      });
-      Alert.alert('Açıldı', `"${p.name}" · ${p.items.length} parça yüklendi`);
-    } catch (e: any) {
-      Alert.alert('Açma hatası', String(e?.message ?? e));
-    } finally {
-      setBusy(false);
-    }
+  const onBack = () => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('Projects');
   };
 
   return (
     <View style={[styles.wrap, { top: insets.top + s(8), left: insets.left + s(10) }]}>
       <Pressable
+        onPress={onBack}
+        style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+      >
+        <Text style={styles.txt}>‹ Projeler</Text>
+      </Pressable>
+      <Pressable
         onPress={onSave}
         style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
       >
         <Text style={styles.txt}>💾 Kaydet</Text>
-      </Pressable>
-      <Pressable
-        onPress={onOpenLast}
-        disabled={busy}
-        style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
-      >
-        <Text style={styles.txt}>📂 Son proje</Text>
       </Pressable>
     </View>
   );

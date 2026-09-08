@@ -1,28 +1,14 @@
 import React from 'react';
-import { ViroNode, ViroBox, ViroMaterials } from '@reactvision/react-viro';
-import { CATALOG, getCatalogItem } from '../catalog/catalog';
+import { ViroNode, ViroBox } from '@reactvision/react-viro';
+import { getCatalogItem } from '../catalog/catalog';
 import { SceneItem, useSceneStore, Vec3 } from '../store/useSceneStore';
+import './partMaterials';
 
 /**
  * Sahneye yerleştirilmiş tek bir parça (Faz 2: primitif ViroBox).
  * Faz 3: dokunarak seçme + parmakla sürükleyerek taşıma.
  * Faz 6'da ViroBox yerine item.modelRef ile Viro3DObject (.glb) gelecek.
  */
-CATALOG.forEach((c) => {
-  ViroMaterials.createMaterials({
-    [`mat_${c.key}`]: {
-      lightingModel: 'Blinn',
-      diffuseColor: c.color,
-      shininess: 3.0,
-    },
-    [`mat_${c.key}_sel`]: {
-      lightingModel: 'Blinn',
-      diffuseColor: '#ffd54a', // seçili: sarı vurgu
-      shininess: 3.0,
-    },
-  });
-});
-
 type Props = {
   item: SceneItem;
   selected: boolean;
