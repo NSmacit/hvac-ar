@@ -12,33 +12,48 @@ import { scale } from '../theme/responsive';
 type Props = {
   scanning: boolean;
   planeCount: number;
+  itemCount: number;
   onToggle: () => void;
+  onClear: () => void;
 };
 
 /**
- * AR görüntüsünün üzerine binen RN kontrol katmanı (Faz 1).
- * - Üstte durum bilgisi (algılanan düzlem sayısı)
- * - Altta "Taramayı Başlat / Durdur" butonu
- * Faz 2'de bu katmana malzeme paleti eklenecek.
+ * AR görüntüsünün üzerine binen RN kontrol katmanı.
+ * - Üstte durum bilgisi (yüzey + parça sayısı)
+ * - Altta "Taramayı Başlat/Durdur" ve (parça varsa) "Temizle" butonları
  */
-export default function ScanOverlay({ scanning, planeCount, onToggle }: Props) {
+export default function ScanOverlay({
+  scanning,
+  planeCount,
+  itemCount,
+  onToggle,
+  onClear,
+}: Props) {
   const insets = useSafeAreaInsets();
 
-  const statusText = !scanning
-    ? 'Taramaya hazır'
-    : planeCount === 0
-    ? 'Yüzey aranıyor…'
-    : `${planeCount} yüzey algılandı`;
+  const parts: string[] = [];
+  if (scanning) {
+    parts.push(planeCount === 0 ? 'Yüzey aranıyor…' : `${planeCount} yüzey`);
+  } else {
+    parts.push('Taramaya hazır');
+  }
+  if (itemCount > 0) parts.push(`${itemCount} parça`);
+  const statusText = parts.join('  ·  ');
 
   return (
     <View style={styles.root} pointerEvents="box-none">
       {/* Üst durum çubuğu */}
-      <View style={[styles.topBar, { top: insets.top + scale(8) }]}
+      <View
+        style={[styles.topBar, { top: insets.top + scale(8) }]}
         pointerEvents="none"
       >
         <View style={styles.pill}>
           {scanning && planeCount === 0 && (
-            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+            <ActivityIndicator
+              size="small"
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
           )}
           <View
             style={[
@@ -50,7 +65,7 @@ export default function ScanOverlay({ scanning, planeCount, onToggle }: Props) {
         </View>
       </View>
 
-      {/* Tarama sırasında ipucu */}
+      {/* Tarama sırasında, henüz yüzey yokken ipucu */}
       {scanning && planeCount === 0 && (
         <View style={styles.hintWrap} pointerEvents="none">
           <Text style={styles.hintText}>
@@ -59,7 +74,7 @@ export default function ScanOverlay({ scanning, planeCount, onToggle }: Props) {
         </View>
       )}
 
-      {/* Alt aksiyon butonu */}
+      {/* Alt aksiyon butonları */}
       <View style={[styles.bottomBar, { bottom: insets.bottom + scale(20) }]}>
         <Pressable
           onPress={onToggle}
@@ -73,6 +88,18 @@ export default function ScanOverlay({ scanning, planeCount, onToggle }: Props) {
             {scanning ? 'Taramayı Durdur' : 'Taramayı Başlat'}
           </Text>
         </Pressable>
+
+        {itemCount > 0 && (
+          <Pressable
+            onPress={onClear}
+            style={({ pressed }) => [
+              styles.clearButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <Text style={styles.clearText}>Temizle</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -115,7 +142,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: scale(24),
     right: scale(24),
-    top: '48%',
+    top: '46%',
     alignItems: 'center',
   },
   hintText: {
@@ -132,12 +159,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: scale(12),
   },
   button: {
-    minWidth: scale(220),
+    minWidth: scale(200),
     paddingVertical: scale(15),
-    paddingHorizontal: scale(28),
+    paddingHorizontal: scale(24),
     borderRadius: scale(16),
     alignItems: 'center',
     shadowColor: '#000',
@@ -159,5 +189,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: scale(17),
     fontWeight: '700',
+  },
+  clearButton: {
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(18),
+    borderRadius: scale(16),
+    backgroundColor: 'rgba(20,24,31,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  clearText: {
+    color: '#fff',
+    fontSize: scale(15),
+    fontWeight: '600',
   },
 });
