@@ -5,6 +5,7 @@ import ARWorld from '../ar/ARWorld';
 import ScanOverlay from '../components/ScanOverlay';
 import MaterialPalette from '../components/MaterialPalette';
 import TransformControls from '../components/TransformControls';
+import ProjectBar from '../components/ProjectBar';
 import { useSceneStore } from '../store/useSceneStore';
 
 /**
@@ -53,6 +54,8 @@ export default function ARSceneScreen() {
       />
 
       <TransformControls />
+
+      <ProjectBar />
     </View>
   );
 }
