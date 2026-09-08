@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "HVAC AR",
+    "slug": "hvac-ar",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hvacar.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Mekânı tarayıp havalandırma parçalarını AR ortamında yerleştirmek için kameraya erişim gerekir."
+      }
+    },
+    "android": {
+      "package": "com.hvacar.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@reactvision/react-viro",
+        {
+          "ios": {
+            "cameraUsagePermission": "Mekânı tarayıp havalandırma parçalarını AR ortamında yerleştirmek için kameraya erişim gerekir."
+          }
+        }
+      ]
+    ]
+  }
+}
