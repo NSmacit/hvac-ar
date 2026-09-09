@@ -12,6 +12,7 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
+  PanResponder,
 } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -20,7 +21,7 @@ import {
   ViroScene,
   ViroNode,
   ViroBox,
-  ViroOrbitCamera,
+  ViroCamera,
   ViroAmbientLight,
   ViroDirectionalLight,
 } from '@reactvision/react-viro';
@@ -33,8 +34,9 @@ import '../ar/partMaterials';
 type ViewerRoute = RouteProp<RootStackParamList, 'Viewer'>;
 
 const ZOOM_STEP = 1.25;
-const CAM_MIN = 0.5;
-const CAM_MAX = 30;
+const CAM_MIN = 0.4;
+const CAM_MAX = 40;
+const ROT_SPEED = 0.4;
 
 /** Projeyi orijine ortalar ve uygun kamera mesafesini hesaplar. */
 function recenter(items: SceneItem[]): { items: SceneItem[]; camDist: number } {
@@ -66,39 +68,51 @@ function recenter(items: SceneItem[]): { items: SceneItem[]; camDist: number } {
 }
 
 type SceneProps = {
-  sceneNavigator: { viroAppProps: { items: SceneItem[]; camDist: number } };
+  sceneNavigator: {
+    viroAppProps: {
+      items: SceneItem[];
+      camDist: number;
+      rotX: number;
+      rotY: number;
+    };
+  };
 };
 
-/** Orbit kameralı, düzenlemesiz 3D sahne. Zoom kamera mesafesiyle (butonlar). */
+/**
+ * Sabit kamera + döndürülebilir model düğümü.
+ * Kamera origin'e bakar; parçalar bir düğümde döndürülür (orbit hissi).
+ */
 function ViewerScene(props: SceneProps) {
-  const { items, camDist } = props.sceneNavigator.viroAppProps;
+  const { items, camDist, rotX, rotY } = props.sceneNavigator.viroAppProps;
   return (
     <ViroScene>
-      <ViroAmbientLight color="#ffffff" intensity={350} />
+      <ViroAmbientLight color="#ffffff" intensity={400} />
       <ViroDirectionalLight
         color="#ffffff"
-        direction={[0.2, -1, -0.3]}
-        intensity={900}
+        direction={[0.3, -1, -0.4]}
+        intensity={1000}
       />
-      <ViroOrbitCamera position={[0, 0, camDist]} focalPoint={[0, 0, 0]} active />
-      {items.map((it) => {
-        const size = getCatalogItem(it.type)?.size ?? [0.2, 0.2, 0.2];
-        return (
-          <ViroNode
-            key={it.id}
-            position={it.position}
-            rotation={it.rotationEuler}
-            scale={it.scale}
-          >
-            <ViroBox
-              width={size[0]}
-              height={size[1]}
-              length={size[2]}
-              materials={[`mat_${it.type}`]}
-            />
-          </ViroNode>
-        );
-      })}
+      <ViroCamera position={[0, 0, camDist]} active />
+      <ViroNode rotation={[rotX, rotY, 0]}>
+        {items.map((it) => {
+          const size = getCatalogItem(it.type)?.size ?? [0.2, 0.2, 0.2];
+          return (
+            <ViroNode
+              key={it.id}
+              position={it.position}
+              rotation={it.rotationEuler}
+              scale={it.scale}
+            >
+              <ViroBox
+                width={size[0]}
+                height={size[1]}
+                length={size[2]}
+                materials={[`mat_${it.type}`]}
+              />
+            </ViroNode>
+          );
+        })}
+      </ViroNode>
     </ViroScene>
   );
 }
@@ -109,7 +123,10 @@ export default function ProjectViewerScreen() {
   const { projectId } = route.params;
   const [items, setItems] = useState<SceneItem[] | null>(null);
   const [camDist, setCamDist] = useState<number | null>(null);
+  const [rot, setRot] = useState({ x: -15, y: 0 });
   const fitDist = useRef(2);
+  const rotRef = useRef({ x: -15, y: 0 });
+  const lastPan = useRef({ dx: 0, dy: 0 });
 
   useEffect(() => {
     let alive = true;
@@ -137,11 +154,17 @@ export default function ProjectViewerScreen() {
       ),
     [],
   );
-  const resetZoom = useCallback(() => setCamDist(fitDist.current), []);
+  const resetView = useCallback(() => {
+    setCamDist(fitDist.current);
+    rotRef.current = { x: -15, y: 0 };
+    setRot({ x: -15, y: 0 });
+  }, []);
 
-  // Zoom kontrollerini başlık çubuğuna da koy (her zaman görünür, RN)
   useLayoutEffect(() => {
     navigation.setOptions({
+      // Döndürme sürüklemesi geri-git jestini tetiklemesin
+      gestureEnabled: false,
+      fullScreenGestureEnabled: false,
       headerRight: () => (
         <View style={styles.headerBtns}>
           <Pressable onPress={() => zoom(1 / ZOOM_STEP)} hitSlop={8}>
@@ -150,13 +173,36 @@ export default function ProjectViewerScreen() {
           <Pressable onPress={() => zoom(ZOOM_STEP)} hitSlop={8}>
             <Text style={styles.headerBtn}>－</Text>
           </Pressable>
-          <Pressable onPress={resetZoom} hitSlop={8}>
+          <Pressable onPress={resetView} hitSlop={8}>
             <Text style={styles.headerBtn}>⤢</Text>
           </Pressable>
         </View>
       ),
     });
-  }, [navigation, zoom, resetZoom]);
+  }, [navigation, zoom, resetView]);
+
+  // Tek parmak sürükle → modeli döndür
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        lastPan.current = { dx: 0, dy: 0 };
+      },
+      onPanResponderMove: (_e, g) => {
+        const ddx = g.dx - lastPan.current.dx;
+        const ddy = g.dy - lastPan.current.dy;
+        lastPan.current = { dx: g.dx, dy: g.dy };
+        const y = rotRef.current.y + ddx * ROT_SPEED;
+        const x = Math.max(
+          -85,
+          Math.min(85, rotRef.current.x + ddy * ROT_SPEED),
+        );
+        rotRef.current = { x, y };
+        setRot({ x, y });
+      },
+    }),
+  ).current;
 
   if (!view || camDist == null) {
     return (
@@ -173,40 +219,21 @@ export default function ProjectViewerScreen() {
     <View style={styles.root}>
       <Nav3D
         initialScene={{ scene: ViewerScene as any }}
-        viroAppProps={{ items: view.items, camDist }}
+        viroAppProps={{ items: view.items, camDist, rotX: rot.x, rotY: rot.y }}
         style={styles.nav}
       />
 
-      {hasItems ? (
-        <>
-          {/* Zoom kontrolleri (kamera mesafesi) */}
-          <View style={styles.zoomBar}>
-            <Pressable
-              onPress={() => zoom(1 / ZOOM_STEP)}
-              style={({ pressed }) => [styles.zoomBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.zoomText}>＋</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => zoom(ZOOM_STEP)}
-              style={({ pressed }) => [styles.zoomBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.zoomText}>－</Text>
-            </Pressable>
-            <Pressable
-              onPress={resetZoom}
-              style={({ pressed }) => [styles.zoomBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.resetText}>⤢</Text>
-            </Pressable>
-          </View>
+      {/* Döndürme için tek-parmak yakalayıcı (viewer'da başka jest yok) */}
+      {hasItems && (
+        <View style={styles.gesture} {...responder.panHandlers} />
+      )}
 
-          <View style={styles.hint} pointerEvents="none">
-            <Text style={styles.hintText}>
-              Parmakla sürükle: döndür · ＋ / － : yakınlaştır
-            </Text>
-          </View>
-        </>
+      {hasItems ? (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>
+            Parmakla sürükle: döndür · ＋ / － : yakınlaştır
+          </Text>
+        </View>
       ) : (
         <View style={styles.overlay} pointerEvents="none">
           <Text style={styles.overlayText}>Bu projede parça yok</Text>
@@ -219,33 +246,15 @@ export default function ProjectViewerScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0e1116' },
   nav: { flex: 1 },
+  gesture: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0e1116',
   },
-  zoomBar: {
-    position: 'absolute',
-    right: 16,
-    bottom: 70,
-    gap: 10,
-  },
-  zoomBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(20,24,31,0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: { opacity: 0.6 },
   headerBtns: { flexDirection: 'row', gap: 18, paddingRight: 4 },
   headerBtn: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  zoomText: { color: '#fff', fontSize: 26, fontWeight: '700', lineHeight: 30 },
-  resetText: { color: '#fff', fontSize: 22, fontWeight: '700' },
   overlay: {
     position: 'absolute',
     top: 0,
