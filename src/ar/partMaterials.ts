@@ -15,10 +15,20 @@ CATALOG.forEach((c) => {
     },
     [`mat_${c.key}_sel`]: {
       lightingModel: 'Blinn',
-      diffuseColor: '#ffd54a', // seçili: sarı vurgu
+      diffuseColor: '#ffd54a', // seçili: sarı vurgu (primitif fallback)
       shininess: 3.0,
     },
   });
+});
+
+// Seçili .glb parçası için yarı saydam sarı vurgu kutusu
+ViroMaterials.createMaterials({
+  sel_box: {
+    lightingModel: 'Constant',
+    diffuseColor: 'rgba(255, 213, 74, 0.28)',
+    cullMode: 'None',
+    blendMode: 'Alpha',
+  },
 });
 
 export {};

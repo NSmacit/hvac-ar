@@ -21,6 +21,7 @@ import {
   ViroScene,
   ViroNode,
   ViroBox,
+  Viro3DObject,
   ViroCamera,
   ViroAmbientLight,
   ViroDirectionalLight,
@@ -29,6 +30,7 @@ import { RootStackParamList } from '../navigation/types';
 import { loadProject } from '../data/projectRepository';
 import { SceneItem, Vec3 } from '../store/useSceneStore';
 import { getCatalogItem } from '../catalog/catalog';
+import { partModel } from '../ar/partModels';
 import '../ar/partMaterials';
 
 type ViewerRoute = RouteProp<RootStackParamList, 'Viewer'>;
@@ -96,6 +98,7 @@ function ViewerScene(props: SceneProps) {
       <ViroNode rotation={[rotX, rotY, 0]}>
         {items.map((it) => {
           const size = getCatalogItem(it.type)?.size ?? [0.2, 0.2, 0.2];
+          const model = partModel(it.type);
           return (
             <ViroNode
               key={it.id}
@@ -103,12 +106,16 @@ function ViewerScene(props: SceneProps) {
               rotation={it.rotationEuler}
               scale={it.scale}
             >
-              <ViroBox
-                width={size[0]}
-                height={size[1]}
-                length={size[2]}
-                materials={[`mat_${it.type}`]}
-              />
+              {model ? (
+                <Viro3DObject source={model} type="GLB" />
+              ) : (
+                <ViroBox
+                  width={size[0]}
+                  height={size[1]}
+                  length={size[2]}
+                  materials={[`mat_${it.type}`]}
+                />
+              )}
             </ViroNode>
           );
         })}

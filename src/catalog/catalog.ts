@@ -1,75 +1,84 @@
 /**
- * Havalandırma parça kataloğu.
+ * Havalandırma parça kataloğu — gerçek .glb modelleri (air_duct_kit'ten bölündü).
  *
  * ÖNEMLİ: Parçalar AR'da GERÇEK ÖLÇEKTE (1:1) çizilir. Viro'da 1 birim = 1 metre.
- * `size` = [genişlik, yükseklik, uzunluk] METRE cinsinden gerçek ölçüdür; parça
- * ekranda büyüyüp küçülmez, tavanda gerçekte nasıl duracaksa öyle görünür.
- *
- * `params` alanı JSON export/metraj içindir (Faz 4). Faz 6'da `modelRef` ile
- * gerçek .glb modeller (yuvarlak galvaniz, dirsek) yüklenecek.
+ * `size` = modelin gerçek bounding-box'ı (metre) — seçim kutusu/fallback için.
+ * `modelRef` partModels.ts'teki require anahtarıyla eşleşir (= `key`).
+ * `params` alanı JSON export/metraj içindir.
  */
 export type CatalogItem = {
-  /** Katalog anahtarı — JSON `type` alanı */
   key: string;
-  /** Palette ve etikette görünen ad */
   label: string;
-  /** Kısa etiket (palet kartı) */
   short: string;
-  /** İleride yüklenecek gerçek model dosyası */
   modelRef: string;
-  /** Metraj/parametre bilgisi (JSON export) */
   params: Record<string, number | string>;
-  /** GERÇEK ölçü (metre): [genişlik, yükseklik, uzunluk] */
-  size: [number, number, number];
-  /** Primitif rengi (galvaniz sac tonları) */
-  color: string;
+  size: [number, number, number]; // gerçek bbox (m)
+  color: string; // primitif fallback rengi
 };
 
 export const CATALOG: CatalogItem[] = [
   {
-    key: 'rect_duct_400x300',
-    label: 'Dikdörtgen Kanal 400×300',
-    short: 'Dikdörtgen',
-    modelRef: 'rect_duct.glb',
-    params: { widthMm: 400, heightMm: 300, lengthMm: 1000, material: 'galvanized_steel' },
-    size: [0.4, 0.3, 1.0], // gerçek 40×30 cm kesit, 1 m boy
-    color: '#c2cad6',
-  },
-  {
-    key: 'round_duct_200',
-    label: 'Yuvarlak Kanal Ø200',
-    short: 'Yuvarlak',
-    modelRef: 'round_duct.glb',
-    params: { diameterMm: 200, lengthMm: 1000, material: 'galvanized_steel' },
-    size: [0.2, 0.2, 1.0], // Ø200 mm, 1 m boy (primitif: kare kesit yaklaşımı)
+    key: 'straight_duct',
+    label: 'Düz Kanal Ø300 · 2 m',
+    short: 'Düz Kanal',
+    modelRef: 'straight_duct',
+    params: { diameterMm: 300, lengthMm: 2000, material: 'galvanized_steel' },
+    size: [0.315, 0.315, 2.0],
     color: '#c8d0dc',
   },
   {
-    key: 'elbow_90_200',
-    label: 'Dirsek 90° Ø200',
+    key: 'elbow_90',
+    label: 'Dirsek 90° Ø300',
     short: 'Dirsek',
-    modelRef: 'elbow_90.glb',
-    params: { diameterMm: 200, angleDeg: 90, material: 'galvanized_steel' },
-    size: [0.2, 0.2, 0.2],
+    modelRef: 'elbow_90',
+    params: { diameterMm: 300, angleDeg: 90, material: 'galvanized_steel' },
+    size: [0.4, 0.312, 0.4],
     color: '#aab4c2',
   },
   {
-    key: 'reducer_200_160',
-    label: 'Redüksiyon 200/160',
-    short: 'Redüksiyon',
-    modelRef: 'reducer.glb',
-    params: { inMm: 200, outMm: 160, lengthMm: 300, material: 'galvanized_steel' },
-    size: [0.2, 0.2, 0.3],
+    key: 'tee',
+    label: 'T Parçası Ø300',
+    short: 'T Parça',
+    modelRef: 'tee',
+    params: { diameterMm: 300, material: 'galvanized_steel' },
+    size: [0.5, 0.3, 0.4],
+    color: '#9fa9b7',
+  },
+  {
+    key: 'cross',
+    label: 'Artı (+) Parça Ø300',
+    short: 'Artı',
+    modelRef: 'cross',
+    params: { diameterMm: 300, material: 'galvanized_steel' },
+    size: [0.5, 0.3, 0.5],
+    color: '#a7b2bf',
+  },
+  {
+    key: 'end_cap',
+    label: 'Kapak / Uç Ø300',
+    short: 'Kapak',
+    modelRef: 'end_cap',
+    params: { diameterMm: 300, material: 'galvanized_steel' },
+    size: [0.324, 0.324, 0.508],
     color: '#b4bdc9',
   },
   {
-    key: 'tee_200',
-    label: 'T Parçası Ø200',
-    short: 'T Parça',
-    modelRef: 'tee.glb',
-    params: { diameterMm: 200, material: 'galvanized_steel' },
-    size: [0.2, 0.2, 0.4],
-    color: '#9fa9b7',
+    key: 'outlet',
+    label: 'Menfez / Çıkış',
+    short: 'Menfez',
+    modelRef: 'outlet',
+    params: { widthMm: 480, heightMm: 115, material: 'galvanized_steel' },
+    size: [0.04, 0.115, 0.48],
+    color: '#9aa6b2',
+  },
+  {
+    key: 'roof_holder',
+    label: 'Tavan Askısı',
+    short: 'Askı',
+    modelRef: 'roof_holder',
+    params: { material: 'galvanized_steel' },
+    size: [0.314, 0.659, 0.025],
+    color: '#8f99a7',
   },
 ];
 
