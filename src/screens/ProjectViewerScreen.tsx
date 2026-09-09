@@ -120,7 +120,7 @@ function ViewerScene(props: SceneProps) {
 export default function ProjectViewerScreen() {
   const route = useRoute<ViewerRoute>();
   const navigation = useNavigation<any>();
-  const { projectId } = route.params;
+  const { projectId, name } = route.params;
   const [items, setItems] = useState<SceneItem[] | null>(null);
   const [camDist, setCamDist] = useState<number | null>(null);
   const [rot, setRot] = useState({ x: -15, y: 0 });
@@ -228,6 +228,16 @@ export default function ProjectViewerScreen() {
         <View style={styles.gesture} {...responder.panHandlers} />
       )}
 
+      {/* Metraj/Export butonu (jest katmanının ÜSTÜNDE) */}
+      {hasItems && (
+        <Pressable
+          onPress={() => navigation.navigate('Metraj', { projectId, name })}
+          style={({ pressed }) => [styles.metrajBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.metrajText}>📋 Metraj</Text>
+        </Pressable>
+      )}
+
       {hasItems ? (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>
@@ -255,6 +265,17 @@ const styles = StyleSheet.create({
   },
   headerBtns: { flexDirection: 'row', gap: 18, paddingRight: 4 },
   headerBtn: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  pressed: { opacity: 0.7 },
+  metrajBtn: {
+    position: 'absolute',
+    left: 16,
+    bottom: 24,
+    backgroundColor: '#2f6bff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  metrajText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   overlay: {
     position: 'absolute',
     top: 0,

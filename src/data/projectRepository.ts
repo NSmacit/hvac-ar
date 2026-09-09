@@ -76,3 +76,9 @@ export function deleteProject(projectId: string): void {
   const file = fileFor(projectId);
   if (file.exists) file.delete();
 }
+
+/** Projenin JSON dosyasının paylaşılabilir file:// URI'si (yoksa null). */
+export function projectFileUri(projectId: string): string | null {
+  const file = fileFor(projectId);
+  return file.exists ? file.uri : null;
+}

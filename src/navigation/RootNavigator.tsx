@@ -4,6 +4,7 @@ import { RootStackParamList } from './types';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import ARSceneScreen from '../screens/ARSceneScreen';
 import ProjectViewerScreen from '../screens/ProjectViewerScreen';
+import MetrajScreen from '../screens/MetrajScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -38,6 +39,11 @@ export default function RootNavigator() {
         name="Viewer"
         component={ProjectViewerScreen}
         options={({ route }) => ({ title: route.params.name })}
+      />
+      <Stack.Screen
+        name="Metraj"
+        component={MetrajScreen}
+        options={({ route }) => ({ title: `Metraj · ${route.params.name}` })}
       />
     </Stack.Navigator>
   );
