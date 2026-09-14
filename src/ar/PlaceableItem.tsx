@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ViroNode, ViroBox, Viro3DObject } from '@reactvision/react-viro';
 import { getCatalogItem } from '../catalog/catalog';
 import { SceneItem, useSceneStore, Vec3 } from '../store/useSceneStore';
 import { partModel } from './partModels';
+import { trySnapConnect } from './snap';
 import './partMaterials';
 
 /**
@@ -18,6 +19,14 @@ type Props = {
 export default function PlaceableItem({ item, selected }: Props) {
   const select = useSceneStore((s) => s.select);
   const updateItem = useSceneStore((s) => s.updateItem);
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (snapTimer.current) clearTimeout(snapTimer.current);
+    },
+    [],
+  );
 
   const cat = getCatalogItem(item.type);
   const size = cat?.size ?? [0.2, 0.2, 0.2];
@@ -29,7 +38,30 @@ export default function PlaceableItem({ item, selected }: Props) {
       rotation={item.rotationEuler}
       scale={item.scale}
       dragType="FixedDistance"
-      onDrag={(pos: number[]) => updateItem(item.id, { position: pos as Vec3 })}
+      onDrag={(pos: number[]) => {
+        const raw = pos as Vec3;
+        // Sürükleme sırasında parmağı takip et (Viro transform'u kontrol ediyor)
+        updateItem(item.id, { position: raw });
+        // Parmak bırakılınca (drag durunca) uç-uca yapış
+        if (snapTimer.current) clearTimeout(snapTimer.current);
+        snapTimer.current = setTimeout(() => {
+          const others = useSceneStore
+            .getState()
+            .items.filter((i) => i.id !== item.id)
+            .map((i) => ({
+              type: i.type,
+              position: i.position,
+              yaw: i.rotationEuler[1],
+            }));
+          const snap = trySnapConnect(item.type, raw, others);
+          if (snap) {
+            updateItem(item.id, {
+              position: snap.position,
+              rotationEuler: [0, snap.yaw, 0],
+            });
+          }
+        }, 180);
+      }}
     >
       {model ? (
         <Viro3DObject

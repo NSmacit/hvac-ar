@@ -12,6 +12,7 @@ import {
 import { useSceneStore, Vec3 } from '../store/useSceneStore';
 import { getCatalogItem } from '../catalog/catalog';
 import { arCursor } from './arCursor';
+import { trySnapConnect } from './snap';
 import PlaceableItem from './PlaceableItem';
 
 /**
@@ -99,19 +100,50 @@ export default function ARWorld(props: ViroSceneProps) {
     const cat = getCatalogItem(placement.key);
     if (!cat) return;
 
-    let pos: Vec3 | null = arCursor.valid ? arCursor.position : null;
     const cam = cameraRef.current;
-    if (!pos && cam) {
-      const d = 1.2;
-      pos = [
-        cam.position[0] + cam.forward[0] * d,
-        cam.position[1] + cam.forward[1] * d,
-        cam.position[2] + cam.forward[2] * d,
-      ];
+    const MIN_DIST = 0.9; // parça asla kameranın içinde/dibinde doğmasın
+    const FALLBACK_DIST = 1.5;
+
+    const ahead = (d: number): Vec3 | null =>
+      cam
+        ? [
+            cam.position[0] + cam.forward[0] * d,
+            cam.position[1] + cam.forward[1] * d,
+            cam.position[2] + cam.forward[2] * d,
+          ]
+        : null;
+
+    let pos: Vec3 | null = null;
+    const p = arCursor.position;
+    if (arCursor.valid && cam && p) {
+      const dist = Math.hypot(
+        p[0] - cam.position[0],
+        p[1] - cam.position[1],
+        p[2] - cam.position[2],
+      );
+      // Baktığın yüzeye koy; ama çok yakınsa güvenli mesafeye it
+      pos = dist >= MIN_DIST ? p : ahead(FALLBACK_DIST);
+    } else {
+      pos = ahead(FALLBACK_DIST);
     }
     if (!pos) return;
 
-    const yaw = cam?.rotation?.[1] ?? 0;
+    let yaw = cam?.rotation?.[1] ?? 0;
+
+    // Yakındaki bir parçaya uç-uca (yön hizalı) yapış
+    const others = useSceneStore
+      .getState()
+      .items.map((i) => ({
+        type: i.type,
+        position: i.position,
+        yaw: i.rotationEuler[1],
+      }));
+    const snap = trySnapConnect(cat.key, pos, others);
+    if (snap) {
+      pos = snap.position;
+      yaw = snap.yaw;
+    }
+
     addItem({
       type: cat.key,
       label: cat.label,
