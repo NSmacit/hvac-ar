@@ -5,6 +5,7 @@ import ProjectsScreen from '../screens/ProjectsScreen';
 import ARSceneScreen from '../screens/ARSceneScreen';
 import ProjectViewerScreen from '../screens/ProjectViewerScreen';
 import MetrajScreen from '../screens/MetrajScreen';
+import CreditsScreen from '../screens/CreditsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -44,6 +45,11 @@ export default function RootNavigator() {
         name="Metraj"
         component={MetrajScreen}
         options={({ route }) => ({ title: `Metraj · ${route.params.name}` })}
+      />
+      <Stack.Screen
+        name="Credits"
+        component={CreditsScreen}
+        options={{ title: 'Krediler / Lisanslar' }}
       />
     </Stack.Navigator>
   );

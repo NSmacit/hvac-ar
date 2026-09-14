@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,16 @@ export default function ProjectsScreen() {
       refresh();
     }, [refresh]),
   );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => navigation.navigate('Credits')} hitSlop={8}>
+          <Text style={styles.headerLink}>ⓘ Krediler</Text>
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
 
   const onNew = () => {
     useSceneStore.getState().newProject();
@@ -199,4 +209,5 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  headerLink: { color: '#fff', fontSize: 15, fontWeight: '600', paddingRight: 4 },
 });
