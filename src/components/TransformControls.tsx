@@ -1,17 +1,15 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSceneStore, Vec3 } from '../store/useSceneStore';
+import { useSceneStore } from '../store/useSceneStore';
 import { scale as s } from '../theme/responsive';
 
 const ROTATE_STEP = 15; // derece
 
 /**
- * Seçili parça için manipülasyon çubuğu (Faz 3).
- * - Y ekseninde ±15° hassas döndürme
- * - sil / seçimi bırak
- * Taşıma, parçayı doğrudan parmakla sürükleyerek yapılır (PlaceableItem onDrag).
- * Ölçek KASITLI olarak yoktur: parçalar gerçek boyutunda (1:1) kalmalı.
+ * Seçili parça için manipülasyon çubuğu.
+ * Zincir modeli: döndürme TÜM bağlı hattı merkezine göre çevirir (rotateAll);
+ * taşıma parmakla sürükleyerek yapılır (tüm hat birlikte). Sil/seçimi bırak.
  * Hiçbir parça seçili değilse kendini gizler.
  */
 export default function TransformControls() {
@@ -20,16 +18,13 @@ export default function TransformControls() {
   const item = useSceneStore((st) =>
     st.items.find((it) => it.id === st.selectedId),
   );
-  const updateItem = useSceneStore((st) => st.updateItem);
+  const rotateAll = useSceneStore((st) => st.rotateAll);
   const removeItem = useSceneStore((st) => st.removeItem);
   const select = useSceneStore((st) => st.select);
 
   if (!selectedId || !item) return null;
 
-  const rotateBy = (deg: number) => {
-    const [x, y, z] = item.rotationEuler;
-    updateItem(item.id, { rotationEuler: [x, y + deg, z] });
-  };
+  const rotateBy = (deg: number) => rotateAll(deg);
 
   return (
     <View style={[styles.wrap, { top: insets.top + s(52) }]}>

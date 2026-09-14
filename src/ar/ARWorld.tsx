@@ -12,7 +12,7 @@ import {
 import { useSceneStore, Vec3 } from '../store/useSceneStore';
 import { getCatalogItem } from '../catalog/catalog';
 import { arCursor } from './arCursor';
-import { trySnapConnect } from './snap';
+import { rotateY, add } from './vecmath';
 import PlaceableItem from './PlaceableItem';
 
 /**
@@ -130,18 +130,15 @@ export default function ARWorld(props: ViroSceneProps) {
 
     let yaw = cam?.rotation?.[1] ?? 0;
 
-    // Yakındaki bir parçaya uç-uca (yön hizalı) yapış
-    const others = useSceneStore
-      .getState()
-      .items.map((i) => ({
-        type: i.type,
-        position: i.position,
-        yaw: i.rotationEuler[1],
-      }));
-    const snap = trySnapConnect(cat.key, pos, others);
-    if (snap) {
-      pos = snap.position;
-      yaw = snap.yaw;
+    // Zincir: ilk parça serbest, sonrakiler önceki parçanın ucuna eklenir
+    const existing = useSceneStore.getState().items;
+    if (existing.length > 0) {
+      yaw = existing[0].rotationEuler[1]; // hat yönü ilk parçadan
+      const last = existing[existing.length - 1];
+      const lastLen = (getCatalogItem(last.type)?.size ?? [0, 0, 0.4])[2];
+      const newLen = cat.size[2];
+      const tail = add(last.position, rotateY([0, 0, lastLen / 2], yaw));
+      pos = add(tail, rotateY([0, 0, newLen / 2], yaw));
     }
 
     addItem({

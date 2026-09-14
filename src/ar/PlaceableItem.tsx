@@ -1,15 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { ViroNode, ViroBox, Viro3DObject } from '@reactvision/react-viro';
 import { getCatalogItem } from '../catalog/catalog';
 import { SceneItem, useSceneStore, Vec3 } from '../store/useSceneStore';
 import { partModel } from './partModels';
-import { trySnapConnect } from './snap';
 import './partMaterials';
 
 /**
- * Sahneye yerleştirilmiş tek bir parça.
- * Faz 6: gerçek .glb (Viro3DObject); model yoksa primitif ViroBox'a düşer.
- * Dokun = seç, parmakla sürükle = taşı. Seçili parçada yarı saydam sarı kutu.
+ * Sahneye yerleştirilmiş tek bir parça (gerçek .glb, fallback ViroBox).
+ * Zincir modeli: parçalar birbirine bağlı; herhangi birini sürüklemek TÜM
+ * bağlı hattı birlikte öteler (translateAll). Dokun = seç.
  */
 type Props = {
   item: SceneItem;
@@ -18,15 +17,6 @@ type Props = {
 
 export default function PlaceableItem({ item, selected }: Props) {
   const select = useSceneStore((s) => s.select);
-  const updateItem = useSceneStore((s) => s.updateItem);
-  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (snapTimer.current) clearTimeout(snapTimer.current);
-    },
-    [],
-  );
 
   const cat = getCatalogItem(item.type);
   const size = cat?.size ?? [0.2, 0.2, 0.2];
@@ -40,27 +30,16 @@ export default function PlaceableItem({ item, selected }: Props) {
       dragType="FixedDistance"
       onDrag={(pos: number[]) => {
         const raw = pos as Vec3;
-        // Sürükleme sırasında parmağı takip et (Viro transform'u kontrol ediyor)
-        updateItem(item.id, { position: raw });
-        // Parmak bırakılınca (drag durunca) uç-uca yapış
-        if (snapTimer.current) clearTimeout(snapTimer.current);
-        snapTimer.current = setTimeout(() => {
-          const others = useSceneStore
-            .getState()
-            .items.filter((i) => i.id !== item.id)
-            .map((i) => ({
-              type: i.type,
-              position: i.position,
-              yaw: i.rotationEuler[1],
-            }));
-          const snap = trySnapConnect(item.type, raw, others);
-          if (snap) {
-            updateItem(item.id, {
-              position: snap.position,
-              rotationEuler: [0, snap.yaw, 0],
-            });
-          }
-        }, 180);
+        const st = useSceneStore.getState();
+        const me = st.items.find((i) => i.id === item.id);
+        if (!me) return;
+        // Bu parçanın hareketini tüm hatta uygula (rijit taşıma)
+        const delta: Vec3 = [
+          raw[0] - me.position[0],
+          raw[1] - me.position[1],
+          raw[2] - me.position[2],
+        ];
+        st.translateAll(delta);
       }}
     >
       {model ? (
@@ -79,7 +58,6 @@ export default function PlaceableItem({ item, selected }: Props) {
         />
       )}
 
-      {/* Seçim vurgusu (gerçek modelde renk değiştirmek zor) */}
       {selected && (
         <ViroBox
           width={size[0] * 1.06}

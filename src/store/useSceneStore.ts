@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { rotateY, add, sub, centroid } from '../ar/vecmath';
 
 /**
  * Sahnedeki yerleştirilmiş parçaların tek kaynağı (single source of truth).
@@ -33,6 +34,10 @@ type SceneState = {
   removeItem: (id: string) => void;
   select: (id: string | null) => void;
   clear: () => void;
+  /** Tüm bağlı hattı birlikte öteler (rijit taşıma) */
+  translateAll: (delta: Vec3) => void;
+  /** Tüm hattı merkezine göre Y ekseninde döndürür */
+  rotateAll: (deg: number) => void;
   setProjectName: (name: string) => void;
   /** Yeni boş proje başlat (yeni id, boş sahne) */
   newProject: () => void;
@@ -81,6 +86,30 @@ export const useSceneStore = create<SceneState>((set) => ({
     })),
   select: (id) => set({ selectedId: id }),
   clear: () => set({ items: [], selectedId: null }),
+  translateAll: (delta) =>
+    set((s) => ({
+      items: s.items.map((it) => ({ ...it, position: add(it.position, delta) })),
+    })),
+  rotateAll: (deg) =>
+    set((s) => {
+      if (s.items.length === 0) return s;
+      const c = centroid(s.items.map((it) => it.position));
+      return {
+        items: s.items.map((it) => {
+          const rel = sub(it.position, c);
+          const rotated = rotateY(rel, deg);
+          return {
+            ...it,
+            position: add(c, rotated),
+            rotationEuler: [
+              it.rotationEuler[0],
+              it.rotationEuler[1] + deg,
+              it.rotationEuler[2],
+            ],
+          };
+        }),
+      };
+    }),
   setProjectName: (name) => set({ projectName: name }),
   newProject: () =>
     set({
